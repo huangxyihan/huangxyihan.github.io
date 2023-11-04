@@ -519,7 +519,7 @@ git push origin 分支名
 
 - background：rgba只能让背景变透明，opacity: 0.5;可以设置整个元素的透明度（包含背景和内容）
 
-## 10、CSS面试题：css 动画 从左到右 时间2S
+## 10、CSS练习题：css 动画 从左到右 时间2S
 
 ```css
 div {

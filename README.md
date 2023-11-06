@@ -113,11 +113,20 @@ git push origin 分支名
 
   现在，你的GitHub仓库应该包含了你所做的最新修改。
 
+## 3.git push报错
+![git push报错](./images/git%20push%20error.png)
+原因：一般是因为服务器的SSL证书没有经过第三方机构的签署，所以才报错
+
+解决办法：解除ssl验证后，再次git即可
+```bash
+git config --global http.sslVerify false
+```
+
 # HTML + CSS
 ## 1.盒模型
 
 > 盒模型分为`标准盒模型和IE盒模型（怪异盒模型）`
-
+git 
 - 标准盒模型：
   - width等于content的宽度
   - 总宽度:width+左右padding+左右border+margin左右

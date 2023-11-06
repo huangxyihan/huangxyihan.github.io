@@ -1100,7 +1100,7 @@ console.log(arr.mySome(v => v === 1)) // true
 console.log(arr.mySome(v => v === 5)) // false
 ```
 
-### 11.5 封装判断复杂数据类型
+## 11.5 封装判断复杂数据类型
 因为 JavaScript 中的 typeof 运算符在判断对象类型时并不准确。例如，对于数组、日期对象等特殊类型的对象，`typeof` 会返回 "object"，而无法进一步区分其具体类型。
 
 `Object.prototype.toString.call` 这个表达式是用来获取一个对象的类型的标准方法。它的作用是返回一个以 "[object 类型]" 的字符串形式表示对象的类型。
@@ -1150,7 +1150,9 @@ Object.prototype.toString() //"[object Object]"
     if (typeof state !== "object") {
       return typeof state
     } else {
-      // 这边可能有人用instanceof，它是一个运算符,最常用的运算就是来检测constructor.prototype是否存在参数object的原型链上,但是对象的constructor和__proto__都可以修改，所以用instanceof来判断不准确；
+      /*这边可能有人用instanceof，它是一个运算符,最常用的运算就是来检测构造函数的 prototype 属性是否在对象的原型链上。如果是，instanceof 返回 true，否则返回 false.
+      你可以理解为 instanceof 运算符用来检查一个对象是否在另一个对象的原型链上。具体来说，它检查一个对象是否是特定构造函数的实例，这个构造函数的 prototype 属性是否在对象的原型链中。如果是的话，instanceof 返回 true，否则返回 false。
+      但是对象的constructor和__proto__都可以修改，所以用instanceof来判断不准确；*/
       if (Object.prototype.toString.call(state) === '[object Array]') return 'array'
       if (Object.prototype.toString.call(state) === '[object Object]') return 'object'
     }
@@ -1159,7 +1161,7 @@ Object.prototype.toString() //"[object Object]"
   console.log(getType([])); // array
 ```
 
-### 11.6 求未知参数的和
+## 11.6 求未知参数的和
 ```js
 // 写一个函数，计算传入参数的和（参数的个数是未知的）
 // ...args 表示不定数量的参数,这些参数都会被收集到一个名为 args 的数组中
@@ -1189,7 +1191,7 @@ function getSum() {
 }
 console.log(getSum(6, 2, 3, 5)) 
 ```
-### 11.7 翻转一个字符串
+## 11.7 翻转一个字符串
 ```js
 // 1.循环
 const str = 'I love China'
@@ -1209,7 +1211,7 @@ console.log(Array.from(str)) // ['1', '2', '3']
 console.log(Array.from(str).reverse().join(''))
 ```
 
-### 11.8 找出任意html中的所有不重复的html标签
+## 11.8 找出任意html中的所有不重复的html标签
 - 思路：先找出来 然后不重复
 ```js
 const allTags = [...document.querySelectorAll('*')].map(v => v.tagName)
@@ -1219,24 +1221,575 @@ console.log(...new Set(Array.prototype.slice.call(document.querySelectorAll('*')
   );
 ```
 
+## 11.9 cookies, sessionStorage和localStorage的区别
+
+**都是用于在浏览器端存储数据的三种不同机制**：
+
+- 1、**数据发送：**
+  - cookie是网站为了标识用户身份而储存在用户本地终端（Client Side）上的数据（通常经过加密）
+  - cookie`每次HTTP请求都会自动携带相应的Cookies数据`，发送给服务器。这使得Cookies适合用于在客户端和服务器之间`传递数据`。
+  - sessionStorage和localStorage：`数据仅在浏览器端存储`，不会自动发送给服务器。这使得它们更`适合用于在客户端保留本地数据`，供JavaScript代码使用。
+- 2、**存储大小：**
+  - `cookie数据大小不能超过4K`
+  - `sessionStorage和localStorage`也有存储大小的限制，但比cookie大的多，可以达到`5M`或更大；
+- 3、**有期时间（生命周期）：**
+  - `sessionStorage`数据在当前`浏览器窗口关闭后自动删除`；
+  - `localStorage存储持久数据，浏览器关闭后数据不丢失除非主动删除数据`；
+  - cookie`设置的cookie过期时间之前一直有效`，即使窗口或者浏览器关闭；如果`不设置过期时间`，那么Cookie将成为会话Cookie，`仅在当前会话期间有效，当浏览器关闭时会被删除`。
+
+# web APIS
+- 获取DOM对象、操作元素内容/属性、定时器-间歇函数、事件类型/对象、this、回调函数、事件流、事件委托、日期对象、节点操作、window对象、本地存储、正则表达式
+
+> web APIS由BOM、DOM组成：
+
+- DOM是文档对象模型，是`浏览器提供用来操作网页内容的`，可以开发网页内容特效和实现用户交互
+- DOM对象：浏览器根据html标签生成的JS对象，DOM的核心就是把网页内容当做对象来处理；
+- BOM是浏览器对象模型，定义了一套操作浏览器窗口的API；
 
 
+## 1.DOM
+
+- 获取DOM对象：根据CSS选择器来获取：选择匹配的第一个元素：`document.querySelector('CSS选择器')`
+- 选择匹配的多个元素：`document.querySelectorAll('CSS选择器')`
+- 包含一个或多个有效的CSS选择器字符串：`document.querySelectorAll('ul li')`
+- 以上得到的都是一个`伪数组`
+
+## 2.操作元素内容
+- 如果想要修改标签元素的里面的`内容`，则可以使用如下几种方式 ：
+  - 对象.innerText属性
+  - 对象.innerHTML属性
+
+innerText：文本中包含的标签不会被解析；
+```js
+info.innerText = `hello, 我是<strong>刘亦菲</strong>`
+// 刘亦菲不会加粗
+```
+
+innerHTML：文本中包含的标签会被解析；
+```js
+info.innerHTML = `hello, 我是<strong>刘亦菲</strong>`
+// 刘亦菲会加粗
+```
+
+## 3.操作元素样式
+
+- 1、通过style属性操作CSS
+  - 标签自带默认属性不需要添加style，不是默认属性都需要通过点.style加样式名来添加；比如img标签自带src属性，修改的时候就不需要加style了；
+
+  ```js
+  const box = document.querySelector('.box')
+  // 修改元素样式
+  box.style.backgroundColor = 'pink'
+  box.style.width = '200px'
+  ```
+- 2、通过类名（className）操作CSS
+    > 2.1 由于class是关键字，所以使用className代替
+    > 2.2 className是使用新值换旧值，如果需要添加一个类，需要保留之前的类名
+
+- 3、通过classList操作类控制CSS
+  > 为了解决className容易覆盖以前的类名，我们可以通过classList方式追加和删除类名
+  - 追加类语法：元素.classList.add('类名')
+  - 删除类语法：元素.classList.remove('类名')
+  - 切换类语法：元素.classList.toggle('类名')
+
+## 4.自定义属性
+- 在html5中推出了专门的`data-自定义属性`
+- 在`标签上一律以data-开头`
+- 在DOM对象上一律以`dataset对象方式获取`
+
+```html
+<div class="box" data-id="10">盒子</div>
+```
+```js
+const box = document.querySelector('.box')
+console.log(box.dataset.id) // 10
+
+//若我们给标签添加了多个自定义属性，通过box.dataset会打印出自定义属性的集合，
+// 是一个对象，所以我们访问其中一个属性的时候用对象.属性名获取，比如：box.dataset.spm
+
+<div data-id="10" data-spm="不知道">1</div>
+```
+
+## 5.间歇函数
+
+- 间隔固定的时间自动重复执行另一个函数，也叫定时器函数【可以开启和关闭】
+![间歇函数](./images/setinterval.png)
+
+## 6.延迟函数
+![延迟函数](./images/settimeout.png)
+
+## 7.this指向
+
+- 环境对象指的是函数内部特殊的变量this，它代表着当前函数运行时所处的环境；
 
 
-
-
-
-
-
-
-
-
+- 普通函数下this不受函数定义的环境影响，而是`取决于函数被谁调用`
+- 箭头函数下的this取决于定义环境 
 
 ```js
-function foo() {
-  console.log(this)
-}
-foo() // window
-// 使用 new 运算符来调用一个函数时，它会创建一个新对象，并将该对象的 this 关联到这个新创建的对象
-const fn = new foo() // foo {}
+// 函数直接使用
+    function get(content) {
+      console.log(content)
+    }
+    get('你好')
+    get.call(window, '你好')
+  
+// 函数作为对象的方法被调用（谁调用我 我就指向谁）
+    var person = {
+      name: '张三',
+      run: function (time) {
+        console.log(`${this.name}在跑步, 已经跑了${time}分钟`);
+      }
+    }
+    person.run(30)
+    person.run.call(person, 30)
+
+    // 题目
+    var name = 222
+    var a = {
+      name: 111,
+      say: function () {
+        console.log(this.name);
+      }
+    }
+
+    var fun = a.say
+    fun() // fun.call(window) 222
+    a.say() // a.say.call(a) 111
+
+    var b = {
+      name: 333,
+      say: function (fun) {
+        fun() // fun.call(window) 222
+      }
+    }
+    b.say(a.say)
+    b.say = a.say
+    b.say() // b.say.call(b) 333
 ```
+
+## 8.箭头函数this指向
+
+- 箭头函数的this是`在定义函数的时候绑定，而不是在执行函数的时候绑定`；
+
+- 箭头函数没有自己的this，导致内部的this就是外层代码块的this，正是因为它没有this，所以也不能用作构造函数；
+
+- 所谓定义时候绑定，就是this是继承自父执行上下文中的this,这也解释了箭头函数本身是没有this的
+
+  8.1 **绑定外层作用域的 this：**箭头函数中的 `this` 是根据上层（函数或全局）作用域确定的，而不是根据调用时的上下文。
+
+  8.2 **不能修改 this：** 与常规函数不同，无法使用 `.call()`、`.apply()` 或 `.bind()` 等方法来显式地更改箭头函数的 `this` 值。它的 `this` 是不可变的。
+
+  ```js
+  var x = 11
+  const obj = {
+    x: 22,
+    say: () => {
+      console.log(this); // window
+      console.log(this.x);
+    }
+  }
+  obj.say() // 11
+  /*say 方法是一个箭头函数。
+  箭头函数的 this 指向是定义时的外层作用域，say方法定义就是obj定义，它的外层作用域即全局作用域。
+  所以this.x 将会尝试访问全局上下文中的 x 变量，而不是 obj 对象中的 x 属性。*/
+  ```
+
+  ```js
+  const obj1 = {
+        birth: 1990,
+        getAge: function () {
+          console.log(this) // obj1
+          var b = this.birth // 1990
+          var fn = () => new Date().getFullYear() - this.birth // this指向obj对象
+          return fn
+        }
+      }
+      console.log(obj1.getAge()()) // 33
+  /* 1.getAge 方法是一个普通的函数，其中使用了箭头函数 fn。
+  2.在 getAge 函数内部，this 指向调用该函数的对象，即 obj1。
+  3.箭头函数 fn 中的 this 会捕获到最近的普通函数作用域中的 this，即 getAge 函数的 this，也就是 obj1。
+  4.因此，在箭头函数 fn 中，this.birth 获取的是 obj1 对象的 birth 属性值。
+
+  总结：
+  getAge 函数内部的 this 指向 obj1，因为它是作为 obj1 的方法被调用的。
+  箭头函数 fn 内部的 this 也指向 obj1，因为箭头函数的 this 是词法作用域，与其定义时的上下文有关。
+  */
+  ```
+
+  箭头函数在定义时会捕获外部的 `this`，而不是在调用时。普通函数会根据调用上下文来确定 `this` 的值。
+
+## 9.回调函数
+
+  回调函数:`当一个函数作为参数传递给另一个函数，并且在后者内部被调用，我们称之为回调函数`。**回调函数的作用是在特定的时间点或条件下执行特定的逻辑**。
+
+## 10.JS执行机制
+
+- 单线程，同一时间只能做一件事，意味着所有任务需要排队，前一个任务结束，才会执行后一个任务，这样导致的问题是：如果JS执行的时间过长，就会造成页面的渲染不连贯，导致页面渲染加载阻塞的感觉；
+- 为了解决这个问题，JS中出现了同步和异步
+  - 同步：`前一个任务结束后在执行后一个任务；同步任务都在主线程上执行，形成一个执行栈`；
+  - 异步：任务执行过程中还可以去处理其他任务；`JS的异步是通过回调函数实现的，异步任务添加到任务队列【消息队列】`中,
+- 先执行执行栈中的同步任务，异步任务放入任务队列中，一旦执行栈中的所有同步任务执行完毕，系统就会按次序读取任务队列中的异步任务，于是被读取的异步任务结束等待状态，进入执行找开始执行；
+- 由于主线程不断地重复获得任务，执行任务。再获取任务在执行的这种机制被称为事件循环；
+
+## 11.event-loop事件循环机制
+
+  - js语言特点：`单线程`【代码会按照顺序逐个执行，不会同时运行多个代码块】、`解释性语言`；尽管 JavaScript 自身是单线程的，但它支持`异步编程模型，允许通过事件循环（Event Loop）处理异步操作`;如网络请求、定时器等，而不会阻塞主线程的执行;
+
+  - event-loop：事件循环机制 由三部分组成
+
+    - `调用栈`：JavaScript代码的执行从调用栈开始。`调用栈用于处理同步代码和函数调用`。 遇到函数调用，它会推入到调用栈中， 被推入的函数被称之为帧，然后在执行完成后被弹出；
+    - `微任务队列`：微任务队列是一个用于存储微任务的队列，它的特点是它们比宏任务优先级更高。promise async await的异步操作会加入到微任务队列中区，会在调用栈清空的时候立即执行；
+    - `消息队列`：消息队列是一个用于存储宏任务的队列。js中的异步操作包括定时器（`setTimeout`、`setInterval`）、事件处理器等。 推入到调用栈中的时候里面的消息会进入到消息队列中 等到调用栈清空后再执行；
+    - **调用栈中加入的微任务会立马执行；**
+
+  - `事件循环的基本流程是`：
+
+    1、执行当前调用栈中的同步代码。
+
+    2、检查微任务队列，如果有微任务，依次执行微任务直到微任务队列为空。
+
+    3、检查消息队列，如果有宏任务，将宏任务中的任务推入调用栈执行，然后返回步骤1。
+
+  这个流程不断循环，确保了JavaScript的异步代码按照一定的顺序和优先级执行。微任务队列中的任务优先级高于消息队列中的宏任务，因此微任务可以用来处理重要的异步操作，而不会被宏任务阻塞。
+
+  ```js
+  // 案例1：只涉及到调用栈
+  function fun1() {
+    console.log(1)
+  }
+  function fun2() {
+    console.log(2)
+    fun1()
+    console.log(3)
+  }
+  fun2() // 2 1 3 
+
+  // 案例2：宏任务定时器的打印4这个消息先放到消息队列中，然后执行函数fun3，打印3，执行同步代码打印5，调用栈此时清空，将宏任务的任务推入到调用栈执行，打印4；
+  function fun3() {
+    console.log(3)
+  }
+  function fun4() {
+    setTimeout(() => {
+      console.log(4)
+    }, 0)
+    fun3()
+    console.log(5)
+  }
+  fun4() // 3 5 4
+
+  // 案例3：调用栈中加入的微任务会立马执行，所以会立刻打印4，resolve(5)会在.then的时候输出，func2推入到调用栈中，定时器的消息推入到消息队列中，执行函数func1打印1然后弹出调用栈，再执行同步代码打印3，.then任务放入到微任务队列中，调用栈此时已被清空，先把微任务推入到调用栈，所以先打印5，调用栈此时已被清空，再把消息队列中的消息推入到调用栈中打印2；调用栈 微任务和消息队列全部清空 执行完毕
+  var p = new Promise(resolve => {
+    console.log(4)
+    resolve(5)
+  })
+  function func1() {
+    console.log(1)
+  }
+  function func2() {
+    setTimeout(() => {
+      console.log(2)
+    }, 0)
+    func1()
+    console.log(3)
+    p.then(resolve => {
+      console.log(resolve)
+    })
+  }
+  func2() // 4 1 3 5 2
+  ```
+
+  ```js
+  // 美团面试题
+  function fn() {
+    return new Promise((resolve) => {
+      console.log('Promise1')
+      fn1()
+      setTimeout(() => {
+        console.log('Promise2');
+        resolve()
+        console.log('Promise3');
+      }, 0);
+    })
+  }
+
+  async function fn1() {
+    var p = Promise.resolve().then(() => {
+      console.log('Promise6');
+    })
+    // 出现了await 说明需要等待异步任务完成之后才会继续往下执行 所以顺序是Promise6, Promise7, end
+    await p.then(() => {
+      console.log('Promise7');
+    })
+    console.log('end');
+  }
+  console.log('script');
+  setTimeout(() => {
+    console.log('setTimeout')
+  }, 0);
+
+  fn().then(() => {
+    console.log('Promise4');
+  })
+
+  // 结果：script，Promise1，Promise6, Promise7, end, setTimeout, Promise2， Promise3, Promise4, 
+
+  // 调用栈：console.log('script');
+
+  // 微任务： 
+  /*1.console.log('Promise1')在fn调用的时候立即打印
+    2.console.log('Promise6')、console.log('Promise7')、end*/
+
+  // 消息队列(宏任务)：
+  /*  1、console.log('setTimeout')， 
+      2、console.log('Promise2');
+        resolve() // 这个还要另外再放到微任务队列里面去，所以宏任务这边打印的是setTimeout, Promise2， Promise3，.then里面的Promise4最后打印出来；
+        console.log('Promise3');*/
+  ```
+
+## 12.事件冒泡和捕获
+
+### 12.1 事件流
+- 指的是事件完整执行过程中的流动路径，分为捕获和冒泡阶段；
+![事件流](./images/sjl.png)
+
+> 事件流只会在`父子元素具有相同事件类型时才会产生影响`；
+
+- 若是L0事件监听，则只有冒泡阶段，没有捕获；
+![事件监听](./images/bh.png)
+
+- 事件监听`第三个参数，默认是false`，也就是`事件默认是处于冒泡流的`，如果要让事件处于捕获流，需要加上第三个参数，设置为true：
+> DOM.addEventListener(事件类型，事件处理函数，是否使用捕获机制)
+
+### 12.2 事件对象
+  - 在事件绑定的回调函数的第一个参数就是事件对象，一般命名为event，ev，e，也是个对象，这个对象里有事件触发时的信息，比如鼠标点击时，事件对象就存了鼠标点击在哪个位置等信息，e.target
+
+  ```js
+  document.querySelector('button').addEventListener('click', function (e) {
+    console.log(e.target.tagName) // BUTTON
+    console.log(e.target) // <button>按钮</button>
+  })
+  ```
+
+### 12.3 事件的捕获优先级大于冒泡
+- 1、让绿色的第三个参数为true，处于捕获流，另外另个不变还是处于冒泡，**事件的执行顺序先执行捕获然后执行冒泡，所以点击蓝色盒子会先打印绿色，然后打印蓝色、 红色
+- 2、让红色和蓝色处于捕获，绿色处于冒泡，此时打印顺序为**红色、蓝色、绿色**
+
+```js
+  <div class="red">
+    <div class="green">
+      <div class="blue"></div>
+    </div>
+  </div>
+  const oRed = document.querySelector('.red')
+  const oGreen = document.querySelector('.green')
+  const oBlue = document.querySelector('.blue')
+  // 事件捕获：点击最里面的蓝色盒子，第一时间是先触发的是最外面的div,会依次打印红色 绿色 蓝色；
+  oRed.addEventListener('click', () => {
+    console.log('红色');
+  })
+  oGreen.addEventListener('click', () => {
+    console.log('绿色');
+  })
+  oBlue.addEventListener('click', (e) => {
+    e.stopPropagation() // 阻止事件冒泡 此时点击蓝色盒子只会打印蓝色
+    // 如果不阻止事件冒泡，点击蓝色盒子会依次打印蓝色 绿色 红色
+    console.log('蓝色');
+  })
+```
+### 12.4 阻止冒泡
+阻止事件的流动，`保证事件只在当前元素被执行`，因为默认就有冒泡模式的存在，所以容易影响到其他对应的祖先元素：语法：`事件对象.stopPropagation()`，此方法可以阻断事件流动传播，不光在冒泡阶段有效，捕获阶段也有效；
+
+## 13.事件委托
+
+- 事件冒泡：当一个元素触发事件后，会依次向上调用所有父级元素的`同名事件`；
+- 事件委托： 把子元素的事件委托给父元素执行。优点就是减少注册次数，可以提高程序性能；
+- 13.1 面试题：写一个事件委托
+
+  ```html
+    <ul>
+      <li>1</li>
+      <li>2</li>
+      <li>3</li>
+      <li>4</li>
+      <li>5</li>
+    </ul>
+    <script>
+      // 写一个事件委托
+      const ul = document.querySelector('ul')
+      ul.addEventListener('click', (e) => {
+        if (e.target.tagName = 'LI') {
+          alert(e.target.innerHTML)
+        }
+      })
+    </script>
+  ```
+
+
+- 13.2树洞留言demo
+  <div class="wrapper">
+    <ul>
+      <li>你们在干嘛呀</li>
+      <li>好无聊啊，去打球呗</li>
+      <li>谁知道最近有哪些好看的电影</li>
+      <li>周杰伦准备发新歌啦</li>
+    </ul>
+    <input type="text">
+    <button>树洞留言</button>
+  </div>
+
+```js
+    const oUl = document.querySelector('ul')
+    const oButton = document.querySelector('button')
+    const oText = document.querySelector('input')
+    const oLis = document.querySelectorAll('li')
+
+    // 把点击事件委托在li的父元素ul身上
+    oUl.addEventListener('click', (e) => {
+      // e.target可以通过事件捕获从外向内找到最里面发生点击的这个元素对象
+      oUl.removeChild(e.target)
+    })
+    oButton.addEventListener('click', () => {
+      const oLi = document.createElement('li')
+      oLi.innerHTML = oText.value
+      oUl.appendChild(oLi)
+      oText.value = ''
+    })
+```
+
+## 14.日期对象
+
+- 面试题：每隔一秒打印当前时间 时间格式是：YYYY-MM-DD hh:mm:ss
+
+```js
+function getTime() {
+  let time = new Date()
+  let year = time.getFullYear()
+  let month = (time.getMonth() + 1).toString().padStart(2, '0')
+  let day = time.getDate().toString().padStart(2, '0')
+  let hour = time.getHours().toString().padStart(2, '0')
+  let min = time.getMinutes().toString().padStart(2, '0')
+  let sec = time.getSeconds().toString().padStart(2, '0')
+  console.log(`${year}-${month}-${day} ${hour}:${min}:${sec}`);
+}
+
+setInterval(() => {
+  getTime()
+}, 1000)
+
+// padStart() 可以在当前字符串的开头（左侧）填充指定的字符，直到字符串达到指定的长度。如果当前字符串长度已经大于或等于指定的长度，则不会进行任何操作，直接返回当前字符串。
+// padStart() 方法需要传入两个参数，第一个参数指定字符串的目标长度，第二个参数指定用来填充的字符。如果不传入第二个参数，默认使用空格字符填充。
+```
+
+```js
+// getTime 方法可以返回当前时间距 1970 年 1 月 1 日 00:00:00（UTC）之间的毫秒数
+/*  
+     let now = new Date()
+     console.log(now.getTime()) // 1697032758261 
+     console.log(now.toLocaleDateString()) // 2023/10/11
+     console.log(now.toLocaleTimeString()) // 21:59:18
+     console.log(now.toLocaleString()) // 2023/10/11 21:59:18 */
+
+/* let time = now.toLocaleString()
+    time.split('/').join('-') */
+
+function getTime() {
+  let now = new Date()
+  let time = now.toLocaleString()
+  console.log(time.split('/').join('-'))
+}
+
+setInterval(getTime, 1000)
+```
+
+## 15.查找节点
+
+- 子元素.parentNode：返回最近一级的父节点，找不到返回null
+- childNodes：获得`所有子节点`包括文本节点（空格、换行）、注释节点等
+- children：仅获得`所有元素节点`，返回的是一个伪数组，父元素.children
+
+```html
+<body>
+  <ul>
+    <li>HTML</li>
+    <li>CSS</li>
+    <li>JS</li>
+    <li>web APIs</li>
+  </ul>
+  <script>
+    const ul = document.querySelector('ul')
+    // 所有的子节点[text, li, text, li, text, li, text, li, text]
+    console.log(ul.childNodes);
+    //  只包含元素子节点[li, li, li ,li]
+    console.log(ul.children);
+  </script>
+</body>
+```
+
+- 父元素.appendChild（要插入的元素），在父元素的最后插入一个子元素
+- 父元素.removeChild(要删除的元素)，如不存在父子关系则删除不成功
+
+## 16.重绘和回流
+
+- 重绘：当元素的样式改变并不影响在文档流中的位置和文档布局时，比如修改颜色 ，称为重绘；
+- 回流（重排）：当部分或全部元素的尺寸、结构、布局等发生改变，浏览器就会重新渲染部分或全部文档的 过程称为回流；
+- 重绘不一定引起回流，而回流一定会引起重绘；
+
+## 17.localStorage本地存储
+
+- 实现数据持久化，可以将数据存储在本地（用户电脑），页面刷新或者关闭不丢失数据；
+- 容量较大，sessionStorage和localStorage约5M左右
+- 语法：
+  - `存储数据：localStorage.setItem(key, value)`
+  - `获取数据：localStorage.getItem(key)`
+  - `删除数据：localStorage.removeItem(key)`
+
+> 本地存储只能存字符串数据类型，无法存储复杂数据类型，所以我们可以将复杂数据类型通过JSON.stringify()转为JSON字符串存储到本地，然后需要用的时候在通过JSON.parse()转为对象使用
+
+## 18.正则表达式
+
+- / /是正则表达式的字面量，正则表达式也是对象；
+
+- 元字符【是一些具有特殊含义的字符】：
+
+  - 边界符：`^ 表示匹配行首的文本（以谁开始）` `$表示匹配行尾的文本（以谁结束）`.
+  - `如果^和$在一起，表示必须是精确匹配`
+  ```js
+  console.log(/^二哈$/.test('二哈二哈')) // false
+  console.log(/^二哈$/.test('二哈')) // true
+  ```
+
+  - 量词：用来设定某个模式出现的次数：
+    - *代表重复0到正无穷
+    - +代表重复1到正无穷
+    - ？代表重复【0,1】
+    - {n}代表重复n次
+    - {n,}代表重复n到正无穷
+    - {n,m}代表重复【n,m】
+  - 字符类：
+    - \d匹配0-9之间的任1个数字，相当于[0,9]
+    - \w匹配任意的字母、数字和下划线、相当于[A-Za-z0-9_]
+    - \s匹配空格（包括换行符、制表符、空格符等）
+
+- `修饰符`：**i**是单词ignore的缩写，正则匹配时`字母不区分大小写`；**g**是global的缩写，匹配`所有满足`正则表达式的结果
+
+```js
+console.log(/a/i.test('a')) // true
+console.log(/a/i.test('A')) // true
+```
+- 替换：字符串.replace（/正则表达式/，'替换的文本'）
+
+```js
+// | 代表或的意思，用***替换满足正则表达式的所有文字
+const res = text.value.replace(/垃圾|基情|死/g, '***')
+```
+
+## 19.判断是否有类
+
+- 元素.calssList.contains() 看看有没有包含某个类，有则返回true，没有就返回false
+```js
+<div class="box"></div>
+const div = document.querySelector('.box')
+console.log(div.classList.contain('box')) // true
+```
+

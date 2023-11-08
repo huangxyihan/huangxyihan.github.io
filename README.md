@@ -1802,3 +1802,1585 @@ const div = document.querySelector('.box')
 console.log(div.classList.contain('box')) // true
 ```
 
+# JS进阶
+
+> 作用域、作用域链、闭包、变量/函数提升、动态参数、剩余参数、箭头函数、解构赋值、深浅拷贝、构造函数、原型对象、原型链
+
+## 1.作用域(词法环境)
+
+- **确定当前代码对变量的访问权限。作用域分为全局和局部（函数和块级）作用域**，JS采用词法作用域，也就是静态作用域，就是**在函数定义的时候作用域就已经确定了**；
+
+- `使用{}包裹的代码称为块代码块`
+
+- script标签和.js文件的最外层就是所谓的全局作用域，再此声明的变量任何其他作用域都可以访问；
+
+  变量对象：是当前代码块中，所有的变量（变量 函数 形参 arguments）组成的一个对象；`arguments` 是 JavaScript 函数内部的一个特殊对象，它包含了所有传递给函数的参数。变量对象是在执行上下文中被激活的，只有变量对象被激活了，这段代码中菜鸟使用所有的变量；
+
+  变量对象分为全局变量对象和局部（函数）变量对象，全局称为：VO，函数由于执行才被激活 称为active Object ：AO
+
+  ![变量对象](./images/VOAO.png)
+
+## 2.常量
+
+常量用`const`声明，常量与变量的本质区别是`常量必须要有值且不允许被重新赋值`，常量只为对象时其属性和方法允许被重新赋值，因为对象是复杂数据类型，地址引用不会改变；
+
+![const](./images/const.png)
+
+## 3.作用域链
+
+​	定义：在JS中，`函数存在一个隐式属性[[Scopes]]，这个属性用来保存当前函数的执行上下文环境`，由于在`数据结构上是链式`的，因为被称作作用域链，我们可以把他理解为一个数组，是**一系列的变量对象组成的一个链式结构**；
+
+​	作用：`保证执行环境里有权访问的变量和函数是有序的`，作用域链的变量只能**向上访问**，变量访问到window对象即被终止，作用域链向下访问变量是不被允许的；
+
+​	最直观的表现就是：函数内部可以访问到函数外部声明的变量；
+
+```js
+var global
+function a() {
+  var a = 123
+  function b() {
+    var bb = 234
+    }
+  b()
+}
+a()
+```
+
+- 1、a函数生成
+![a函数生成](./images/zyy1.png)
+- 2、a函数调用
+![a函数调用](./images/zyy2.png)
+- 3、b函数生成（a函数调用导致b函数生成）它们指向同一个作用域
+![b函数生成](./images/zyy3.png)
+- 4、b函数调用
+![b函数调用](./images/zyy4.png)
+
+b执行的时候先访问b函数的AO（函数变量对象），然后是a函数的AO，最后是VO（全局变量对象）
+
+函数执行完就销毁，所谓销毁就是断掉途中的线，作用域链断链
+
+## 4.闭包
+
+- 闭包是一个函数加上该函数创建时所处的词法环境（也称为作用域）。闭包的核心作用：**使变量可以驻留在内存，不被回收**，闭包的要素：
+
+  - 1、`函数内嵌套函数，嵌套的函数需要return`；
+  - 2、`内层函数需要用到外层函数的变量`；
+
+- 当一个`函数被定义`时，它会创建一个执行环境（execution context）并将该环境保存在内存中。这个执行环境包含了`函数内部的局部变量、参数以及对父级作用域的引用`。`当函数执行完毕后，根据垃圾回收机制，通常会释放掉该执行环境所占用的内存`。
+
+> 但是，在某些情况下，如果`一个函数返回了另一个函数，并且内部函数引用了外部函数的变量，则内部函数仍然保持对外部变量的引用。这样就形成了闭包`。
+
+> 实际上，闭包背后的`原理是JavaScript中的作用域链机制`。当内部函数引用外部变量时，JavaScript引擎会在当前作用域找不到变量的情况下继续向上一级作用域查找，直到全局作用域。因此，即使外部函数执行完毕并释放了内存，由于内部函数仍然保持对外部变量的引用，这些变量不会被垃圾回收机制回收。
+
+> 在函数里面return另一个函数 一般就是闭包,这个变量就会存放在闭包里面，当我们把外层函数执行了，也就把这个闭包创建了，闭包最大的特点就是让变量可以长时间驻留在内存，但是这个可能会造成内存的泄露
+
+```html
+<script>
+function a() {
+      var aa = 123
+      return function b() {
+        console.log(aa);
+      }
+    }
+    var res = a()
+    res() // 123
+  /*常见误区：a执行完之后变量aa被回收，b函数执行的时候就无法访问到变量aa了；
+  正确理解：因为a函数执行的时候正是b函数定义的时候，所以他们指向同一个作用域，按照垃圾回收机制也就是a函数执行完之后它的作用域链要断了，但是b定义的时候作用域链还在，所以b函数执行的时候依然可以访问到变量aa；*/
+</script>
+```
+
+也就是我们通常理解的外部函数可以访问内部函数的变量，以上就是闭包的底层原理，变量没有被垃圾站回收，因为它的作用域链就没有断裂；
+
+### 4.1 美团面试题
+```js
+// 请补全下面的JS代码中的add方法
+function add(n) {
+  /* TODO */ 
+}
+// 补全add函数，输出对应结果
+add(1)(2)() // 3
+add(1)(2)(3)(4)() // 10
+add(1)(1)(1)(1)(1)(1)(1)(1)(1)(1)() // 10
+```
+```js
+function add(n) {
+  return function inner(m) {
+    if (m === undefined) {
+      return n;
+    } else {
+      return add(n + m);
+    }
+  }
+}
+  const res = add(1)(2)()
+  console.log(res)
+  console.log(add(1)(2)(3)(4)())
+  console.log(add(1)(1)(1)(1)(1)(1)(1)(1)(1)(1)())
+```
+
+### 4.2闭包可以解决什么问题
+
+#### 4.2.1、回调函数
+- `当一个函数作为参数传递给另一个函数，并且在后者内部被调用，我们称之为回调函数`。**回调函数的作用是在特定的时间点或条件下执行特定的逻辑**。
+
+​	通过闭包，`回调函数可以访问外部函数的变量和状态，实现了数据共享和访问的需求`。这在异步操作的处理、事件处理等场景中非常常见和有用:
+
+```js
+function outerFunction(callback) {
+  var outerVariable = 'Hello';
+
+  // 在内部函数中调用回调函数
+  function innerFunction() {
+    var innerVariable = 'World';
+    callback(outerVariable + ' ' + innerVariable);
+  }
+
+  // 调用内部函数
+  innerFunction();
+}
+
+function callbackFunction(message) {
+  console.log(message);
+}
+
+// 传递回调函数给外部函数
+outerFunction(callbackFunction); // 输出：Hello World
+```
+
+​	在上述示例中，`outerFunction` 是一个外部函数，它接受一个回调函数作为参数。在内部函数 `innerFunction` 中，我们可以访问外部函数的变量 `outerVariable` 和内部函数的变量 `innerVariable`。然后，我们调用传递进来的回调函数，并将两个变量拼接后作为参数传递给回调函数。
+
+#### 4.2.2、防抖节流
+
+- **防抖节流的共同点都是对高频触发的事件进行优化**；
+- 区别就是**属于不同的优化方案**；`防抖是对于这些事件我们只在最后一次触发的时候来执行需要的操作，而节流是在规定的时间里面执行一次操作，但是它不一定只执行一次`；
+
+
+- 1、**防抖：当持续触发事件，一定时间内没有再触发事件，事件处理函数才会执行一次，如果在设定的时间到来之前，又触发了事件，就重新开始延时**。
+- 防抖实际应用：`输入搜索`：输入结束后n秒才进行搜索请求，n秒内又输入的内容，就重新计时；
+
+```html
+<script>
+    const input = document.querySelector('#input')
+    // 防抖函数
+    function debounce(delay) {
+      let timer = null
+      return function (value) {
+        clearTimeout(timer)
+        /*
+          不想打印 之前已经输入的结果，就要清除以前触发的定时器
+          我们要清除的是setTimeout，应该存储这个timer变量，
+          timer变量需要一直保存在内存当中，内存的泄露：闭包（函数return函数）
+        */
+        timer = setTimeout(function () {
+          console.log(value)
+        }, delay)
+      }
+    }
+
+    // 效果：输入框的结果只出现一次，在用户键盘抬起不再输入后的1秒之后
+    let debounceFun = debounce(1000)
+    input.addEventListener('input', function (e) {
+      debounceFun(e.target.value)
+    })
+
+    /*
+      事件处理函数内部的 this 指向触发事件的 DOM 元素（也就是事件的目标元素）。
+      这里的this就是input元素，注意用到this的情况时不要用箭头函数
+    */
+    input.addEventListener('keyup', function () {
+      debounceFun(this.value)
+    })
+  </script>
+```
+
+- 2、节流：当持续触发事件的时候，保证一段时间内，只调用一次事件处理函数【**一段时间内 只做一件事情**】
+
+- 节流实际案例：滚动条滚动事件、表单提交，鼠标不断点击触发，规定在n秒内多次点击只有一次生效
+
+  ```html
+  <body>
+    <button>点击</button>
+    <script>
+      // 节流函数
+      function throttle(func, wait) {
+        let timerOut // undefined
+        return function () {
+          // 进入判断之后 让timerOut等于定时器函数 说明timerOut有值，就算用户在wait
+          // 时间内点击都不会进入判断来执行定时器函数，这样保证了wait时间内只执行一次
+          // 执行完之后需要重复之前的逻辑，允许让用户点击的时候再次触发
+          // 所以需要让timerOut等于一个false的值
+          if (!timerOut) {
+            timerOut = setTimeout(() => {
+              func()
+              timerOut = null
+            }, wait);
+          }
+        }
+      }
+      function handle() {
+        console.log(Math.random());
+      }
+      document.querySelector('button').onclick = throttle(handle, 2000)
+    </script>
+  </body>
+  ```
+
+#### 4.2.3、使用闭包封装私有变量
+> 这种方法是把一些变量封装在闭包的内部，只暴露一些接口和外界通信
+
+```js
+var user = (function () {
+  var _name = 'jack';
+  var _age = 29;
+  return {
+    getUserInfo: function () {
+      return _name + '-' + _age
+    }
+  }
+})()
+
+// console.log(_name) // _name is not defined
+console.log(user.getUserInfo()) // jack-29
+```
+
+#### 4.2.4、定时器传参
+
+```js
+function createCounter(start) {
+  let counter = start;
+  return function increment() {
+    counter++;
+    console.log(counter);
+  }
+}
+const myCounter = createCounter(0);
+
+// 使用闭包创建了一个计数器，并将初始值设置为 0
+// myCounter 是一个函数，每次调用会将计数器的值增加 1 并输出
+
+setTimeout(myCounter, 1000); // 1
+setTimeout(myCounter, 2000); // 2
+setTimeout(myCounter, 3000); // 3
+
+// 每隔一秒钟调用一次 myCounter 函数，
+// 由于使用了闭包，计数器的值会在每次调用时保持增加
+```
+
+#### 4.2.5、封装判断数据类型的函数
+
+```js
+function isType(type) {
+  return function(target) {
+    return `[object ${type}]` === Object.prototype.toString.call(target)
+  }
+}
+console.log(isType('String')('123')); // true
+```
+
+#### 4.2.6、闭包实现单例模式
+> 单例模式是一种设计模式，其目的是`确保一个类只有一个实例`，并提供一个`全局访问点来访问该实例`。这种模式在许多情况下都很有用，特别是当一个对象需要协调对系统资源的访问，或者当你`希望在整个应用程序中共享某些状态或配置时`。
+- 单例模式的主要特点包括：
+
+  - `一个私有的构造函数：单例模式的类通常具有一个私有的构造函数`，以防止直接实例化多个对象。
+
+  - 一个私有的静态变量：该类通常会包含一个私有的静态变量，用来存储唯一的实例。
+
+  - 一个公共的静态方法：类提供一个公共的静态方法，允许客户端代码获取该唯一的实例。这个方法通常会检查静态变量是否已经实例化，如果没有，则创建一个实例并返回它。
+
+单例模式可以用于许多情况，如配置管理、数据库连接池、线程池、日志记录器等。它有助于`确保在整个应用程序中只有一个共享的实例，避免了资源浪费和一致性问题`。
+
+在不同编程语言中，实现单例模式的具体方式会有所不同。以下是一个简单的示例，演示了如何在JavaScript中实现单例模式：
+
+```js
+// 在这个示例中，构造函数 Singleton 会检查是否已经存在实例
+// 如果已经存在则返回现有实例，否则创建一个新实例。这确保了只有一个实例存在。
+// Singleton.instance 是一个静态属性，用来存储单例模式的唯一实例
+class Singleton {
+  constructor() {
+    if (Singleton.instance) {
+      return Singleton.instance;
+    }
+    this.data = "This is a singleton instance.";
+    Singleton.instance = this;
+    // Singleton 是构造函数，this 在构造函数内部指代当前正在创建的实例,即 Singleton 的一个实例
+    // Singleton.instance = this; 将当前实例赋值给 Singleton 类的静态属性 instance。这样，在后续的实例化尝试中，构造函数会检查 Singleton.instance 是否已经有一个实例，如果有，它将直接返回这个现有的实例
+  }
+
+  getData() {
+    return this.data;
+  }
+}
+
+const instance1 = new Singleton();
+const instance2 = new Singleton();
+
+console.log(instance1 === instance2); // true，两个变量引用同一个实例
+
+console.log(instance1.getData()); // "This is a singleton instance."
+console.log(instance2.getData()); // "This is a singleton instance."
+```
+
+- 请实现一个仅创建一个登录弹窗的功能，确保全局只有一个登录弹窗实例存在，通过点击按钮来显示该弹窗
+
+  - 实现思路：在闭包内部，使用变量 `div` 来保存登录弹窗的引用。在第一次调用 `creatLoginLayer` 函数时，会创建一个新的 `<div>` 元素，并将其添加到页面中。随后的调用将会直接返回之前创建的 `<div>` 元素。这样的设计利用了闭包的特性，确保只有一个登录弹窗的实例存在，避免重复创建登录弹窗、节省内存和资源方面非常有用
+
+```js
+<button id="login">登录</button>
+<script>
+  var creatLoginLayer = (function () {
+    let div = null
+    return function () {
+      if (!div) {
+        div = document.createElement('div')
+        div.innerHTML = '我是登录弹窗'
+        div.style.display = 'none'
+        document.body.append(div)
+      }
+      return div
+    }
+  })()
+
+document.querySelector('#login').addEventListener('click', () => {
+  let loginLayer = creatLoginLayer()
+  // console.log(loginLayer);  
+  // <div style="display: none">我是登录弹窗</div>
+  loginLayer.style.display = 'block'
+})
+</script>
+```
+
+```js
+// 上述代码可以优化，因为不仅仅只创建一个登录弹窗，可能会创建其他单例，所以我们可以把公共部分抽离出来，也就是创建元素的部分；
+// 单一职责 各自做各自的事情
+let getSingle = function (fn) {
+  let result = null
+  return function () {
+    // 这里放创建的业务逻辑 比如创建登录弹窗 iframe.....
+		// result = fn()
+    // return result  如果这样写 页面只要点击登录就会创建一个登录弹窗，我们应该判断是否有，没有才创建
+    return result || (result = fn())
+  }
+}
+
+let createLoginLayer = function () {
+  let div = document.createElement('div')
+  div.innerHTML = '我是登录弹窗'
+  div.style.display = 'none'
+  document.body.append(div)
+  return div
+}
+
+let createSingleLogin = getSingle(createLoginLayer)
+document.querySelector('#login').addEventListener('click', () => {
+  let loginLayer = createSingleLogin()
+  // console.log(loginLayer); // <div style="display: none">我是登录弹窗</div>
+  loginLayer.style.display = 'block'
+})
+```
+
+- ES6的静态方法优化代码：如果在一个方法前，加上static关键字，就表示该方法不会被实例继承，而是直接通过类来调用，这就称为“静态方法”.
+
+这段代码实现了一个单例模式的实例，用于确保一个类只有一个实例，并提供一个全局访问点来获取该实例
+
+```js
+class SingleApple {
+  constructor(name, creator, products) {
+    this.name = name;
+    this.creator = creator;
+    this.products = products;
+  }
+  // 静态方法
+  static getInstance(name, creator, products) {
+    if (!this.instance) {
+      this.instance = new SingleApple(name, creator, products);
+    }
+    return this.instance
+  }
+
+}
+
+let appleCompany = SingleApple.getInstance('苹果公司', '乔布斯', ['iphone', 'imac'])
+let copyApple = SingleApple.getInstance('苹果公司', '阿辉', ['iphone', 'imac'])
+
+appleCompany === copyApple // true
+```
+
+## 5.变量/函数提升
+
+### 5.1 变量提升
+变量提升是 JavaScript 中比较“奇怪”的现象，它允许在变量声明之前即被访问
+```js
+console.log(str + ' world') // undefined world
+// 声明变量 str
+var str = 'hello'
+console.log(str + ' world') // hello world
+
+// 上面的代码等价于
+var str
+console.log(str + ' world') // undefined world
+str = 'hello'
+console.log(str + ' world') // hello world
+```
+> 1、变量用var声明之前即被访问，变量的值为undefined
+
+> 2、let声明的变量不存在变量提升，推荐使用let
+
+> 3、变量提升出现在相同作用域当中
+
+> 4、实际开发中推荐先声明再访问变量
+
+### 5.2 函数
+#### 5.2.1 函数提升
+函数提升与变量提升比较类似，是指函数在声明之前即可被调用。
+
+```js
+// 调用函数
+  foo()
+  // 声明函数
+  function foo() {
+    console.log('声明之前就被调用');
+  }
+
+  // 不存在提升现象
+  bar() // 报错
+  var bar = function () {
+    console.log('函数表达式不存在提升现象');
+  }
+```
+> 1、函数提升能够使函数的声明调用更灵活
+
+> 2、函数表达式不存在提升的现象
+
+> 3、函数提升出现在相同作用域当中
+
+#### 5.2.2 函数参数
+- 默认值
+
+![默认参数](./images/mrcs.png)
+
+- 动态参数
+`arguments 是函数内部内置的伪数组变量，它包含了调用函数时传入的所有实参`
+
+![动态参数](./images/dtcs.png)
+
+> arguments是一个伪数组，它的作用是动态获取函数的实参
+
+- 剩余参数
+ - ...是语法符号，置于最末函数形参之前，用于获取多余的实参
+ - 借助...获取的剩余实参，是个真数组
+ ![剩余参数](./images/sycs.png)
+
+#### 5.2.3 箭头函数
+箭头函数是一种声明函数的简洁语法，它与普通函数并无本质的区别，差异性更多体现在语法格式上。
+
+ ![箭头函数](./images/jths.png)
+ ![箭头函数](./images/jths2.png)
+
+> 箭头函数属于`表达式函数，所以不存在函数提升`
+
+> 箭头函数只有一个参数时可以省略圆括号()
+
+> 箭头函数函数体只有一行代码时可以省略花括号{}， 并自动作为返回值被返回
+
+> 箭头函数中没有`arguments，只能使用剩余参数...动态获取实参`
+
+![箭头函数](./images/jths3.png)
+
+箭头函数不会创建自己的this，它只会`从自己的作用域链的上一层沿用this`
+
+![this指向](./images/this1.png)
+![this指向](./images/this2.png)
+
+
+## 6.ES6对象解构基本用法
+
+```js
+let person = {
+  name: 'John',
+  age: 20
+}
+let {name: username, age, hobby} = person
+console.log(username, age, hobby) // John 20 undefined
+console.log(age, hobby, username) // 20 undefined 'John'
+
+let arr = [1, 2, 3]
+let [a, c, b] = arr
+console.log(a, b, c) // 1 3 2
+
+// 数组的解构 实现值的互换
+let x = 1;
+let y = 2;
+([x, y] = [y, x])
+console.log(x, y) // 2 1
+```
+
+- `对象解构赋值的 默认值，默认值想生效的话，对象与之对应的属性值一定要是undefined`
+
+```js
+let person = {
+  name: 'John',
+  age: 20
+}
+let {name: username, age, hobby = '打游戏'} = person
+console.log(username, age, hobby) // John 20 打游戏
+
+let person2 = {
+  name: 'John',
+  age1: 20,
+  hobby1: 'play'
+}
+let {name, age11, hobby1 = '打游戏'} = person2
+console.log(username, age, hobby1) // John 20 play
+```
+
+```js
+// 默认值生效的场景[记住：默认值想生效的话，对象与之对应的属性值一定要是undefined]
+    let {name = 'John'} = {name: undefined}
+    console.log(name) // John
+
+    let {username = 'john'} = {username: null}
+    console.log(username) // null
+
+    let {age = 20} = {age: 12}
+    console.log(age) // 12
+
+    let {x = 3} = {}
+    // 等价于 let {x = 3} = { x = undefined}
+    console.log(x) // 3
+
+    let {y, z = 4} = {y: 1}
+    console.log(y, z) // 1 4
+
+    let {a: b = 5} = {}
+    // console.log(a) // a is not defined 因为a重命名为b了
+    console.log(b) // 5
+
+    let {c: d = 6} = {c: 7}
+    console.log(d) // 7
+
+    let {e: f = 6} = {e: undefined}
+    console.log(f) // 6
+```
+
+```js
+// 数组的本质是对象 所以可以对数组进行对象属性的解构
+let arr = [1, 2, 3]
+let {0: first, [arr.length - 1]: last} = arr
+console.log(first, last) // 1 3
+```
+
+```js
+// 解构赋值实战的应用：函数传参，比如传过来的是一个对象，我们可以解构。或者函数返回值是一个对象的情况下，也可以解构
+function(state, { index }) { }
+
+function fn() {
+  return {
+    name: 'jack',
+    age: 20
+  }
+}
+
+let {name, age} = fn()
+console.log(name, age) // jack 20
+```
+
+## 7.递归
+
+递归2要素：`函数里面自己调用自己，需要终止条件`
+
+```js
+<body>
+  <!-- 通过递归把P的先辈节点都输出 -->
+  <div>
+    <span>
+      <p></p>
+    </span>
+  </div>
+
+  <script>
+    let arr = []
+    function fn(dom) {
+      if (dom.parentNode) {
+        arr.push(dom.parentNode)
+        fn(dom.parentNode)
+      }
+    }
+    fn(document.querySelector('p'))
+    console.log(arr) //  [span, div, body, html, document]
+  </script>
+</body>
+```
+
+## 8.深浅拷贝
+
+- 数据类型
+
+  - 基本数据类型：**Number、String 、 Boolean、 Undefined 、Null、  Symbol**(ES6新增，表示唯一且不可变的值，通常用于对象属性的键)
+  - 复杂数据类型：**Object**，**Map 和 Set**：是 ES6 引入的数据结构，用于存储键值对（Map）或唯一值（Set）
+
+- `基本数据类型存在在栈中，变量名和值都在栈中，复杂数据类型的变量名存储在栈中，值存储在堆中，变量名保留了值这个对象在堆当中地址的引用`
+
+### 8.1 浅拷贝
+- **实现浅拷贝有几种方式**：
+> 浅拷贝的定义：`浅拷贝会创建一个新的对象 有一个新的地址`。
+浅拷贝是对原始对象的属性值有一份精确的拷贝：
+  1、如果属性是基本数据类型拷贝的就是值。
+  2、如果是复杂数据类型就是赋值（拷贝的就是地址，说明拷贝之后的会影响拷贝之前的 前提是复杂数据类型）  	
+  - 1、`拷贝对象：Object.assgin()、展开运算符{...obj}拷贝对象`
+
+  - 2、`拷贝数组：Array.prototype.concat()或者展开运算符[...arr]`
+
+    ```js
+    // Object.assgin()
+    const obj1 = {
+      uname: 'jack',
+      age: 42
+    }
+    const obj2 = Object.assign({}, obj1)
+    obj2.uname = 'rose' 
+    obj2['age'] = 20 // {uname: 'rose', age: 20} obj1 = {uname: 'jack', age: 42}
+
+    // Array.prototype.concat()
+    const arr = [1, 2, 3, 4]
+    const arr1 = Array.prototype.concat(arr)
+    arr1[0] = 78 // arr1 = [78, 2, 3, 4]  arr = [1, 2, 3, 4]
+    arr2 = [...arr]
+    arr2[0] = 90 // arr2 = [90, 2, 3, 4] arr = [1, 2, 3, 4]
+    ```
+    - **手写浅拷贝**
+
+    ```html
+    <script>
+    const person = {
+      name: '张三'
+    }
+    const person1 = person
+    person.name = '李四'
+    console.log(person === person1) // true
+    console.log(person1.name) // 李四
+    // 这个是浅拷贝吗？（不是因为它没有新的地址，上面这个是赋值）
+    // 赋值：赋值是将一个变量的值复制给另一个变量。这意味着两个变量最终引用相同的内存位置，它们指向相同的对象。如果其中一个变量被修改，另一个变量也会受到影响，因为它们共享相同的数据。
+
+    function shallowClone(source) {
+      // 注意：新对象 新地址
+      let target = {}
+      for (let i in source) {
+        target[i] = source[i]
+      }
+      return target
+    }
+
+    const person = {
+      name: '张三'
+    }
+
+    const person2 = shallowClone(person)
+    person2.name = '李四'
+    console.log(person === person2) // false
+    console.log(person2.name) // 李四
+    console.log(person.name) // 张三
+  </script>
+  ```
+
+### 8.2 深拷贝
+> 深拷贝用于创建一个与原始对象在内存中完全独立的副本，包括所有嵌套的对象和属性。深拷贝确保无论您如何修改副本，原始对象都不受影响，因为它们占用不同的内存空间
+
+- 实现深拷贝有几种方式：
+
+  - 1、`通过递归实现深拷贝`
+  - 2、`JS的lodash库：cloneDeep`
+
+  ```js
+  // 需要先引入lodash库
+  const newArr = _.cloneDeep(oldArr)
+  ```
+  - 3、`通过JSON.stringify()实现`
+
+  ```js
+  const obj1 = {
+    uname: 'jack',
+    age: 42,
+    hobby: ['swimming', 'readdinng']
+  }
+  // 把对象转换为JSON字符串 ，字符串不再指向原先的对象
+  const str = JSON.stringify(obj1) // '{"uname":"jack","age":42,"hobby":["swimming","readdinng"]}'
+  // 再转为对象，会开启一个新的空间
+  const obj4 = JSON.parse(str) // {uname: 'jack', age: 42, hobby: ['swimming', 'readdinng']}
+  obj4.hobby[0] = 'sport' // {uname: 'jack', age: 42, hobby: ['sport', 'readdinng']} obj1不变
+  ```
+- 手写深拷贝
+```html
+<script>
+  function deepCopy(newObj, oldObj) {
+      for (let k in oldObj) {
+        if (typeof oldObj[k] !== 'object') {
+          newObj[k] = oldObj[k]
+        } else {
+          newObj[k] = oldObj[k] instanceof Array ? [] : {}
+          deepCopy(newObj[k], oldObj[k])
+        }
+      }
+    }
+    const oldArr = [1, 3, {uname: 'jack', age: 20}, 'china']
+    let newArr = []
+    deepCopy(newArr, oldArr)
+  
+   function deepClone(oldData) {
+      if (typeof oldData === 'object' && typeof oldData !== null) {
+        let newData = Array.isArray(oldData) ? [] : {}
+        for (let key in oldData) {
+          if (oldData.hasOwnProperty(key)) {
+           // if里面的是终止条件 函数内自己调用自己  所以深拷贝使用的是递归实现 
+            newData[key] = deepClone(oldData[key])
+          }
+        }
+        return newData
+      } else {
+        return oldData
+      }
+    }
+
+    const originalObject = {
+      name: 'john',
+      age: 18,
+      fn: function() {
+        console.log(this.name)
+      },
+      hobbies: [read, write]
+    }
+    const newObj = deepClone(originalObject)
+    originalObject.name = 'mike'
+    originalObject.hobbies[0] = 'Swiming'
+    originalObject.fn = function () {
+      console.log(this.age);
+    }
+    console.log(newObj); // 和原对象一样
+    console.log(originalObject); // 名字、爱好的第一个和函数都变了
+</script>
+```
+
+`instanceof` 是 JavaScript 中的运算符，用于检查对象是否是某个构造函数（或类）的实例.
+  
+  - 语法：object instanceof constructor。 其中：
+    - `object` 是要检查的对象。
+    - `constructor` 是构造函数或类。
+
+## 9.bind call apply
+
+ >  `.bind()`, `.call()`, 和 `.apply()` 是 JavaScript 中用于管理函数执行上下文（`this` 的值）的方法。		
+ 
+ 1、.bind() 方法： `.bind()` 方法用于`创建一个新函数`，将指定的值绑定到函数的 `this` 上，并在以后调用该新函数时保持这个绑定。`.bind()` 方法`不会立即调用函数，而是返回一个新函数，需要手动调用`。例如：
+
+  ```js
+  const obj = { name: 'Alice' };
+
+  function sayHello() {
+    console.log(`Hello, ${this.name}`);
+  }
+
+  const boundFunction = sayHello.bind(obj); // 创建一个绑定了obj作为this的新函数
+  boundFunction(); // 输出 "Hello, Alice"
+  ```
+
+  2、.call() 方法： `.call()` 方法用于`立即调用函数`，并将指定的值绑定到函数的 `this` 上。它接受一个参数列表，第一个参数是要绑定到 `this` 的值，后续参数是传递给函数的参数。例如：
+
+  ```js
+  const obj = { name: 'Bob' };
+
+  function sayHello(greeting) {
+    console.log(`${greeting}, ${this.name}`);
+  }
+
+  sayHello.call(obj, 'Hi'); // 输出 "Hi, Bob"
+  ```
+
+  3、.apply() 方法: `.apply()` 方法与 `.call()` 类似，也是立即调用函数，并将指定的值绑定到函数的 `this` 上，但不同之处在于它`接受一个参数数组`而不是参数列表。例如：
+
+  ```js
+  const obj = { name: 'Charlie' };
+
+  function sayHello(greeting) {
+    console.log(`${greeting}, ${this.name}`);
+  }
+
+  sayHello.apply(obj, ['Hola']); // 输出 "Hola, Charlie"
+  ```
+
+  这些方法在不同情况下用于管理函数的执行上下文，允许您明确设置函数内部的 `this` 值。`.bind()` 创建一个新函数，而 `.call()` 和 `.apply()` 则立即执行函数。
+
+  ### 9.1 手写实现call
+
+  `call()` 是 JavaScript 中的一个函数方法，用于**调用函数并指定函数执行时的上下文（即 this 值）和参数**。
+
+  `call()` 方法的语法如下：
+
+  ```js
+  function.call(thisArg, arg1, arg2, ...)
+  /*
+  thisArg：在调用函数时要设置的 this 值。即函数执行时的上下文对象。
+  arg1, arg2, ...：要传递给函数的参数列表
+  */
+  ```
+
+  - **call的作用**
+
+    - `call` 函数的目标是`调用函数`，并将指定的上下文（`this`）和参数传递给该函数。
+
+      `call` 主要有两个作用：
+
+      1. **改变函数的上下文（this）：** 通过 `call` 方法，你可以指定函数在执行时的上下文对象，即将函数内部的 `this` 指向指定的对象。
+      2. **传递参数给函数：** 除了指定上下文，`call` 方法还可以传递任意数量的参数给函数，这些参数将作为函数的参数在调用时传递进去。!
+
+    ```js
+    var name = '李四'
+    var peoson = {
+      getName: function () {
+        return this.name
+      }
+    }
+    var man = {
+      name: '张三'
+    }
+    // console.log(peoson.getName.call(man)); // 张三
+    // 核心是：     
+      // 1、getName函数要执行（getName函数的this本身指向的是window）
+      // 2、getName函数的this要指向man
+    
+    // 手写call其实考察的就是call的原理：call 方法的原理是通过改变函数内部的 this 值来实现，以及传递参数，从而让函数在指定的上下文中执行；
+    //现在我们通过在原型上定义一个myCall函数,可以实现call的功能
+    Function.prototype.myCall = function (context) {
+      // call的原理就是谁调用我 我就指向谁 
+      // 第一步是要getName函数执行，myCall就是getName调用的
+      // 所以this就是getName this()就是getName函数执行
+      // 首先检查当前this是否为函数
+      if(typeof this !== "function") {
+        throw new Error('this is not a function')
+      }
+      // 如果未提供上下文，则默认为全局对象window
+      context = context || window
+      // 取参数 要去掉第一个 因为第一个传的是改变this指向的参数
+      const args = [...arguments].slice(1)
+
+      // 将当前函数作为上下文对象的一个属性,我们传过来的是man对象
+      // 也就是让getName覆盖掉man里面的函数，即fn这个属性
+      context.fn = this
+      // 使用上下文对象调用函数，传递参数
+      const res = context.fn(...args)
+      // 删除添加的属性
+      delete context.fn
+      
+      return res
+
+    }
+    console.log(peoson.getName.myCall(man));
+    ```
+
+    在这个示例中，我们在 `Function.prototype` 上添加了一个名为 `myCall` 的函数，它接受一个上下文对象和任意数量的参数。在函数内部，我们将当前函数作为上下文对象的属性，然后使用该上下文对象来调用函数，并传递参数。最后，我们删除了添加的属性并返回函数执行的结果。
+
+  ### 9.2 call的使用场景
+
+    - 1、继承和构造函数
+
+      ```js
+      function Parent(name) {
+        this.name = name;
+      }
+
+      function Child(name, age) {
+        Parent.call(this, name); // 继承父类属性
+        this.age = age;
+      }
+      ```
+
+    - 2、判断复杂数据类型
+
+      `Object.prototype.toString.call` 是 JavaScript 中的一种语法，用于获取给定对象的类标签（class tag）。它的作用是返回一个以 "[object 类型]" 的字符串形式表示对象的类型。
+
+      因为 JavaScript 中的 typeof 运算符在判断对象类型时并不准确。例如，对于数组、日期对象等特殊类型的对象，`typeof` 会返回 "object"，而无法进一步区分其具体类型。
+
+      ```js
+      console.log(Object.prototype.toString.call({})) // [object Object]
+      console.log(Object.prototype.toString.call([])) // [object Array]
+      ```
+
+    - 3、es5把伪数组转为数组
+
+      ```js
+      function get() {
+            console.log(arguments)
+            console.log(Array.prototype.slice.call(arguments))
+            console.log([...arguments])
+          }
+      get(1, 2, 3)
+      ```
+
+  ### 9.3 手写实现apply
+
+      **.apply() 方法：** `.apply()` 方法与 `.call()` 类似，也是立即调用函数，并将指定的值绑定到函数的 `this` 上，但不同之处在于它`接受一个参数数组`而不是参数列表
+
+      ```js
+          var name = 'mike'
+          var obj = {
+            getName: function () {
+              console.log(this.name)
+              let sum = 0
+              for (var i = 0; i < arguments.length; i++) {
+                sum += arguments[i]
+              }
+              console.log(sum)
+            }
+          }
+          var woman = {
+            name: 'rose'
+          }
+
+          Function.prototype.myApply = function (context) {
+            if (typeof this !== 'function') {
+              throw new Error('this is not a function')
+            }
+            context = context || window
+            context.fn = this
+            let res
+            if (arguments[1]) {
+              // 如果有参数数组，则使用展开运算符将参数传递给函数
+              res = context.fn(...arguments[1])
+            } else {
+              // 如果没有参数数组，则直接调用函数
+              res = context.fn()
+            }
+            delete context.fn
+            return res
+          }
+
+          obj.getName.myApply(woman, [5, 23])
+      ```
+
+## 10.面向对象
+
+  - 面向过程就是分析出解决问题所需要的步骤，然后用函数把这些步骤一步步实现，使用的时候再一个一个依次调用；
+
+  - 面向对象是把事务分解成一个个对象，然后由对象之间分工合作，每一个对象都是功能中心，具有明确分工。面向对象编程具有灵活、代码可复用、容易维护和开发的优点，更适合多人合作的大型项目；
+
+  - 面向对象的特点：**继承性、封装性**、多态性
+
+    `JS面向对象可以通过构造函数实现封装，将变量和函数组合到一起并能通过this实现数据的共享，但是借助构造函数创建出来的实例对象之间是彼此独立不影响的；`
+
+  **1、构造函数体现了面向对象的封装特性**
+
+  **2、构造函数实例创建的对象彼此独立、互不影响**
+
+  构造函数方法很好用，但是 存在浪费内存的问题，因为每次实例化对象都要定义一个函数（每次实例化对应的函数都是独立的 不相等）造成内存浪费；我们希望所有的对象使用同一个函数，这样就可以节省内存，那么要怎么做呢？
+  - 1、构造函数通过**原型分配的函数是所有对象所共享的**；
+  - 2、每一个**构造函数都有一个prototype属性**，指向另一个**对象**，所以我们也称为**原型对象**；
+  - 3、这个对象可以挂载函数，对象实例化不会多次创建原型上的函数，节约内存；
+  - 4、我们可以把那些**不变的方法，直接定义在prototype对象上，这样所有对象的实例就可以共享**
+  - 5、**构造函数和原型对象的this都指向实例化的对象**；
+  - 6、每个原型对象里面都有一个**constructor属性，指向该原型对象的构造函数**；
+  - 7、**对象都会有一个属性proto，指向构造函数的prototype原型对象**，之所有我们可以使用构造函数prototype原型对象的属性和方法，就是因为对象有__proto__原型的存在；
+  
+  ![proto](./images/yxl.png)
+
+  - 8、__proto__对象原型里面也有一个constructor属性，指向创建该实例对象的构造函数；
+
+  - 总结： `构造函数和原型对象的this都指向实例对象`，实例对象的__proto__指向构造函数的prototype，prototype是对象，也有__proto__属性，指向它的构造函数的prototype
+
+- ![proto](./images/proto.png)
+
+- 9、原型链继承：**子类的原型指向父类的实例，使子类实例对象可以访问到父类原型对象中定义的属性和方法**， 弊端 其中一个子类修改了某个属性，会影响到所有实例【复杂数据类型才会影响，基本数据类型不影响】
+
+- 10、**构造函数继承(在子类的构造函数中 执行父类的构造函数 并且为其绑定子类的this(改变this指向)**，弊端：继承不到父类原型上的方法和属性；
+
+- 11、**组合式继承（结合构造函数继承和原型链继承）**，因为改变了this指向，所以无法继承父类原型上的方法和属性，我们可以通过原型继承再继承过来；
+
+## 11.原型链
+
+![原型链](./images//yxljc.png)
+
+- `prototype是函数的属性，__proto__是对象的属性`
+- `prototype这个属性是一个对象，它包含了构造函数创建的实例对象所共享的属性和方法。当通过 new 关键字创建一个对象时，该对象的 __proto__ 属性会指向构造函数的 prototype 对象，又或者说它们两个是完全相等的`
+
+- 通过Parent构造函数创建的实例都是一个个对象，都会给他们分配一个存储空间，为了避免空间浪费，我们可以把所有实例`公共的属性都写到prototype`上面，然后通过实例创建的对象就是通过__proto__属性来使用这些公共的方法和属性；
+
+- prototype是一个对象，所以也会有__proto__属性，这个proto具体指向哪一个构造函数的prototype，就看我们有没有专门让它指向另外一个构造函数的prototype，如果没有的话就会一直往外面找，一直找到Object
+
+  - `原型链`：比如我们要在实例对象里面找一个属性name，会先看自己的proto里面有没有这个属性，自己没有的话它就会顺着这个链条找到构造函数的prototype里面设置的公共属性和方法，如果这里还没有的话，就看prototype的proto里面是否有这个属性，一直找到Object的prototype，如果这里还没有的话就是undefined
+  - `通过原型链的特性，所以我们可以做一些方法和属性的继承`
+
+![原型链](./images/yxl2.png)
+
+### 11.1 原型链继承
+- 下面代码中的Parent是构造函数，也是函数，所以Parent就有prototype属性
+```js
+// 原型链继承的缺点：对某一个构造函数的实例的父类引用类型数据的修改，会影响到所有实例
+    function Parent() {
+      this.name = ['jack']
+    }
+    Parent.prototype.getName = function () {
+      return this.name
+    }
+    function Child() { }
+
+    // 原型链继承：子类的原型指向父类的实例，使子类实例对象可以访问到父类原型对象中定义的属性和方法
+    Child.prototype = new Parent()
+
+    const child = new Child()
+    console.log(child.name) // ['jack']
+    console.log(child.getName()) // ['jack']
+
+    // 弊端 其中一个子类修改了某个属性，会影响到所有实例【复杂数据类型才会影响，基本数据类型不影响】
+    const child2 = new Child()
+    child2.name[0] = 'rose'
+    console.log(child.name); // ['rose']
+    console.log(child2.name); // ['rose']
+```
+### 11.2 构造函数继承
+```js
+// 1、解决方案：构造函数继承(在子类的构造函数中 执行父类的构造函数 并且为其绑定子类的this[改变this指向)
+    function Animals(name) {
+      this.name = [name]
+    }
+
+    Animals.prototype = {
+      getName: function () {
+        return this.name
+      },
+      age: '4'
+    }
+
+    function Dog() {
+      Animals.call(this, '柴犬') // 这个也是call的实际应用 构造函数继承
+    }
+
+    const dog1 = new Dog()
+    const dog2 = new Dog()
+    dog1.name[0] = '比熊'
+    console.log(dog1.name) // ['比熊']
+    console.log(dog2.name) // ['柴犬']
+    console.log(dog1.age) // undefined
+    console.log(dog2.age) // undefined
+    //dog1.getName() // dog1.getName is not a function 缺点：继承不到父类原型上的方法和属性
+```
+### 11.3 组合式继承
+```js
+    // 2、解决方案：组合式继承(结合构造函数继承和原型链继承)
+    function Car(name) {
+      this.name = [name]
+    }
+    Car.prototype = {
+      getName: function () {
+        return this.name
+      },
+      birth: '1990'
+    }
+    // 构造函数继承
+    function Bmw(name) {
+      Car.call(this, name)
+    }
+    /* 原型链继承：Bmw.prototype = new Car()
+      缺点：会降低性能，因为每次new Bmw()都会执行一次new Car()，然后又执行Car.call；
+      因为Car创建的实例也是一个对象，对象的__proto__都指向构造函数Car的prototype，所以我们可以写成Bmw.prototype = Car.prototype；
+      但是这样写的话，Bmw每次改变原型上的属性或者方法都会影响到父类Car的原型，所以我们写成下面的浅拷贝的方式
+
+    /* Object.create方法创建的新对象是浅拷贝，因为它只复制了原型对象的引用，
+      而不是复制原型对象的属性值。修改原型对象的属性时，新对象也会改变。
+      但当修改新对象上的属性时，原型对象不会受到影响  */
+    Bmw.prototype = Object.create(Car.prototype)
+    // 原型链的一个规则：
+    Bmw.prototype.constructor = Bmw
+
+    const bmw1 = new Bmw('宝马三系')
+    const bmw2 = new Bmw('宝马五系')
+    bmw1.name[0] = '宝马七系'
+    console.log(bmw1.name) // ['宝马七系']
+    console.log(bmw2.name) // ['宝马五系']
+    console.log(bmw1.getName()) // ['宝马七系']
+    console.log(bmw2.getName()) // ['宝马五系']
+    console.log(bmw1.birth) // 1990
+    console.log(bmw2.birth)// 1990
+```
+
+> 当构造函数Person中定义了与原型对象中相同名称的方法，这时实例对象调用的则是构造函数中的方法sayHi
+
+![原型的方法和构造函数的方法优先级](./images/gzhs.png)
+
+## 12.ES5和ES6面向对象的用法和区别
+
+```js
+// 用es5实现面向对象编程，用的就是函数，没有class，这个函数它既是类也是构造函数
+    function Person(name) {
+      this.name = name
+    }
+    Person.prototype.showName = function () {
+      console.log(this.name);
+    }
+
+    // 子类想要继承父类的属性和方法
+    function Worker(name, age) {
+      // 属性继承
+      Person.call(this, name)
+      this.age = age
+    }
+    // 继承父类的方法
+    Worker.prototype = new Person()
+    // 自己的构造器指回自己这个构造函数{这一步写不写都不影响继承}
+    Worker.prototype.constructor = Worker
+
+    Worker.prototype.showAge = function () {
+      console.log(this.age)
+    }
+
+    let w = new Worker('rose', 18)
+    w.showAge() // 18
+    w.showName() // rose
+```
+
+```js
+// es6实现面向对象编程
+    class Person {
+      constructor(name) {
+        this.name = name
+      }
+      showName() {
+        console.log(this.name);
+      }
+    }
+    // 子类想要继承父类的属性和方法
+    // 方法不需要再单独写，只要是extends 就默认是已经继承过来了
+    class Worker extends Person {
+      constructor(name, age) {
+        super(name) // 通过super继承属性
+        // 子类添加自己的属性
+        this.age = age
+      }
+      // 子类添加自己的方法
+      showAge() {
+        console.log(this.age);
+      }
+    }
+
+    let w = new Worker('rose', 18)
+    w.showAge() // 18
+    w.showName() // rose
+```
+
+## 13.es13面向对象新特性
+
+```js
+class Person {
+      // gender作为公共属性 实例的对象都可以访问到
+      gender = 'male';
+      // 私有属性，外部无法直接访问，在属性名前加#。可以通过在类里面写方法访问这个属性，但如果方法也加了#那还是访问不到
+			// #age = 19;
+      // 静态属性实例对象无法访问，只有Person本身才能访问到，静态方法也是同理
+      // 静态属性和方法也可以是私有的，同上加上#即可，逻辑同理
+      static job = 'sales';
+      static fn() {
+        return this.job
+      };
+      static {
+        // 静态代码块自动执行，不需要实例化对象，它的代码是最先执行的
+        console.log('初始操作');
+      }
+      constructor(name) {
+        this.name = name
+      }
+      showName() {
+        console.log(this.name);
+      }
+    }
+    console.log(Person.fn()) // sales
+```
+
+## 14.js逻辑赋值运算符
+
+```js
+let a = 5
+a ||= 10 // a = a || 10
+console.log(a) // 5
+
+let b = 0
+b ||= 10 // b = b || 10
+console.log(b) // 10
+
+// 应用场景
+function fn(obj) {
+  // obj.methods = obj.methods || 'post' 等价于下面的逻辑赋值运算符
+  obj.methods ||= 'post'
+  console.log(obj.methods)
+}
+
+fn({methods: 'get', url: 'http://127.0.0.1'}) // get
+fn({url: 'http://127.0'}) // post
+```
+
+## 15.ES6扩展运算符
+
+- 扩展运算符(`...`)可以应用于多种数据类型，包括：数组、对象、字符串、Set和Map
+
+```js
+const arr1 = [1, 2, 3];
+const arr2 = [4, 5, 6];
+const arr3 = [...arr1, ...arr2]; // [1, 2, 3, 4, 5, 6]
+
+const obj1 = { a: 1, b: 2 };
+const obj2 = { c: 3, d: 4 };
+const obj3 = { ...obj1, ...obj2 }; // { a: 1, b: 2, c: 3, d: 4 }
+
+const str = 'hello';
+const arr = [...str]; // ['h', 'e', 'l', 'l', 'o']
+
+const set1 = new Set([1, 2, 3]); // {1, 2, 3}
+const set2 = new Set([4, 5, 6]);
+const set3 = new Set([...set1, ...set2]); // Set {1, 2, 3, 4, 5, 6}
+
+const map1 = new Map([['a', 1], ['b', 2]]);
+const map2 = new Map([['c', 3], ['d', 4]]);
+const map3 = new Map([...map1, ...map2]); // Map { 'a' => 1, 'b' => 2, 'c' => 3, 'd' => 4 }
+```
+
+```js
+// 合并数组
+const arr1 = [1, 2, 3]
+const arr2 = ['c']
+const arr3 = ['d', 'e']
+const arr4 = arr1.concat(arr2.concat(arr3))
+const arr5 = arr1.concat(arr2, arr3)
+
+console.log([...arr1, ...arr2, ...arr3])
+
+// 和数组的解构赋值想结合
+const [first, ...reset] = [1, 2, 34, 34, 3]
+console.log(first) // 1
+console.log(reset); // [2, 34, 34, 3]
+
+const [first, ...reset] = []
+console.log(first) // undefined
+console.log(reset); // []
+```
+
+- 扩展运算符的作用，可以替代apply的方法
+
+```js
+// 1、传入数组求和
+function getSum(x, y, z) {
+  return x + y + z
+}
+
+var arr = [1, 2, 3]
+console.log(getSum(...arr)) // 6
+
+// ES5是怎么实现的呢？apply第一个参数是改变this指向，这边不需要改变，所以可以传null或者windw,第二个参数是数组
+console.log(getSum.apply(null, arr)) // 6
+
+// 2、求数组的最大值
+const maxArr = [1, 2, 4]
+Math.max(...maxArr) // 4
+Math.min(...maxArr) // 1
+Math.max.apply(null, maxArr) // 4
+
+// 3、将一个数组添加到另一个数组的尾部
+const arr1 = [1, 2, 3]
+const arr2 = [4, 5, 6]
+
+for (let i = 0; i < arr2.length; i++) {
+  arr1.push(arr2[i])
+} 
+console.log(arr1) //  [1, 2, 3, 4, 5, 6]
+
+arr1.push(...arr2)
+console.log(arr1) //  [1, 2, 3, 4, 5, 6]
+
+// ES5怎么实现呢
+Array.prototype.push.apply(arr1, arr2)
+console.log(arr1) //  [1, 2, 3, 4, 5, 6]
+```
+
+```js
+// 我们能否用某种方式为下面的语句使用展开运算而不导致类型错误？
+const obj = {
+  x: 1,
+  y: 2,
+  z: 3
+}
+console.log(...obj)
+// 因为对象本身没有迭代器 所以需要手写一个
+// 给obj添加一个自定义的迭代器,
+// 返回一个对象，这个对象包含了一个 next() 方法和一个 index 属性
+// next() 方法用于返回一个迭代器对象，对象包含两个属性：value 和 done。
+// value 属性表示当前迭代器所指向的值，done 属性表示迭代器是否已经完成
+obj[Symbol.iterator] = function () {
+  return {
+    next: function () {
+      // Reflect.ownKeys(obj) 方法获取对象 obj 的所有属性名
+      let objArr = Reflect.ownKeys(obj) //  ['x', 'y', 'z', Symbol(Symbol.iterator)]
+      // 通过判断 this.index 是否小于 objArr 数组的长度，来决定是否继续迭代
+      if (this.index < objArr.length - 1) {
+        let key = objArr[this.index]
+        this.index++
+        return {
+          value: obj[key]
+        }
+      } else {
+        return {done: true}
+      }
+    },
+    index: 0
+  }
+}
+
+console.log(...obj) // 1 2 3
+
+// ES7写法
+console.log({...obj})
+```
+## 16.Symbol
+
+- 诞生的背景：`为了解决对象属性名重复，导致属性值被覆盖的情况，而需要一个独一无二的数据类型诞生`；
+
+- 介绍：
+
+  - 1、唯一性：`创建一个Symbol类型不需要用new操作符`，因为生成的Symbol是一个原始类型的值，不是对象。直接let s = `Symbol()`，就是Symbol类型了；
+
+  - 2、数据类型的修饰：let s = Symbol('a')，字符串a表示一种修饰，对你当前创建的Symbol类型的一种修饰，作为区分使用，否则当你创建多个Symbol数据时，容易混淆；
+
+  - 3、与其他数据类型的转换：Symbol不能用四则运算进行操作，它只能用显示的方式转为字符串和布尔值，即：String(Symbol( ))，Boolean(Symbol( ))
+
+  - 4、作为对象的属性：注意要用以下三种方式来书写：
+
+    ```js
+    let mySymbol = Symbol()
+        // 第一种写法
+        let a = { }
+        a[mySymbol] = 'Hello!'
+
+        // 第二种写法(常用)
+        let a = { 
+          [mySymbol]: 'Hello!'
+        }
+
+        // 第三种写法
+        let a = {} 
+        Object.defineProperty(a, mySymbol, {value: 'Hello!'})
+    // Object.defineProperty 是 JavaScript 中用于定义对象属性的方法。
+    // 语法：Object.defineProperty(object, propertyName, descriptor)
+    /*
+    object: 要定义属性的目标对象。
+    propertyName: 要定义或修改的属性的名称。
+    descriptor: 一个包含属性特性的对象，它可以包括以下属性：
+      value: 设置属性的值（可选）。
+      writable: 是否可写（true 或 false，默认为 false）。
+      enumerable: 是否可枚举（true 或 false，默认为 false）。
+      configurable: 是否可配置（true 或 false，默认为 false）。
+      get: 获取属性值的函数（可选）。
+      set: 设置属性值的函数（可选）。
+    */
+    ```
+
+    - 对象属性的遍历：`Reflect.ownKeys（）这个方法可以返回对象所有的属性，也就是字符串属性和Symbol属性`；
+    - Symbol属性不会出现在for...in、for...of循环中，也不会被Object.keys（）返回；所以这里要留意Reflect.ownKeys（）方法
+
+    ```js
+    const person = {
+      name: 'rose',
+      age: 23,
+      [Symbol('level')]: 'A'
+    }
+
+    console.log(Object.keys(person)) // ['name', 'age']
+    console.log(Reflect.ownKeys(person)) // ['name', 'age', Symbol(level)]
+    ```
+
+  - 5、Symbol.for( ), Symbol.keyFor( )：若我们希望重新使用同一个Symbol值，可以用Symbol.for。Symbol.keyFor( )方法是返回一个已登记的Symbol类型值的key。下面代码中s3属于未登记的Symbol值，所以返回underfind，Symbol.keyFor( )方法主要是服务于Symbol.for的；
+
+    ```js
+    let s1 = Symbol.for('a')
+    let s2 = Symbol.for('a')
+    console.log(s1 === s2) // true
+
+    let s3 = Symbol('a')
+    console.log(Symbol.keyFor(s1)) // a
+    console.log(Symbol.keyFor(s3)) // undefined
+    ```
+
+## 17.Map的应用
+
+```js
+const obj1 = {
+  name: 'jack'
+}
+
+const obj2 = {
+  name: 'rose'
+}
+
+const obj3 = {
+  [obj1]: '11',
+  [obj2]: '22'
+}
+//在给对象属性赋值时，属性名会被转换为字符串类型。将 obj1 和 obj2 作为属性名时，它们会被转换为字符串 "[object Object]"，因为默认在ES5中： 对象都是键值对的形式，且键会隐式通过toString()转为字符串型。
+console.log(Object.keys(obj1)) // ['name']
+console.log(obj3) // {[object Object]: '22'}
+console.log(Object.keys(obj3)) // ['[object Object]']
+
+// 在obj3中使用对象作为属性名，可以考虑使用 ES6 中的 Map 数据结构，它可以支持对象作为键.
+const map = new Map();
+map.set(obj1, '11');
+map.set(obj2, '22');
+console.log(map); // 输出：Map { { name: 'jack' } => '11', { name: 'rose' } => '22' }
+
+// 应用 通过颜色打印对应的水果
+const fruits = new Map().set('red', 'apple').set('green', 'grape').set('yellow', 'orange')
+console.log(fruits)
+function printFruits(color) {
+  return fruits.get(color) || ''
+}
+console.log(printFruits(null))
+console.log(printFruits('yellow')) // orange
+```
+
+## 18.使用json-server配置静态资源服务器
+
+前后端数据交互联调过程,主是用来配置图片、音频、视频资源，mock根据接口文档 制造假数据，不耽误前端获取数据
+
+1、前后端分离的架构：**前端通过调用后端接口，后端去请求数据库，把数据库的数据通过接口返回给前端**
+
+2、假设一开始后端接口没有写好，先出了接口文档，前端可以根据**mock模拟出数据** 提升开发效率
+
+3、**json-server是mock-server的搭建工具**
+
+### 18.1 使用json-server来创建模拟的RESTful API服务器通常包括以下步骤：
+
+1. 安装Node.js：首先，确保您的计算机上安装了Node.js。您可以从Node.js官方网站（https://nodejs.org/）下载并安装Node.js。
+
+2. 安装json-server：在命令行中，使用npm（Node.js包管理器）来全局安装json-server。打开终端或命令提示符，并运行以下命令：
+
+```
+npm install -g json-server
+```
+
+这将在全局范围内安装json-server，使您可以在任何目录中使用它。
+
+3. 创建JSON数据文件：准备您的模拟数据，将其保存为一个JSON文件。这个JSON文件将充当您的模拟RESTful API的数据存储。例如，您可以创建一个名为`db.json`的文件，并在其中定义您的数据结构。以下是一个简单的示例：
+
+```json
+{
+  "posts": [
+    { "id": 1, "title": "Post 1" },
+    { "id": 2, "title": "Post 2" },
+    { "id": 3, "title": "Post 3" }
+  ]
+}
+```
+
+4. 启动json-server：在终端或命令提示符中，进入包含您的`db.json`文件的目录，并运行以下命令以启动json-server：
+
+```
+json-server --watch db.json
+```
+
+这将启动json-server，并它将监听默认端口3000上的HTTP请求。
+
+5. 访问API：您的模拟RESTful API现在已经运行。您可以通过访问`http://localhost:3000`来访问API，并使用HTTP请求（GET、POST、PUT、DELETE等）来与模拟数据进行交互。例如，要获取所有`posts`，您可以使用`GET`请求访问`http://localhost:3000/posts`。
+
+json-server还提供了许多其他功能，如筛选、排序、分页等，您可以在其文档中找到更多信息。您还可以根据需要自定义路由和中间件，以满足您的模拟API需求。
+
+这些是使用json-server创建模拟RESTful API服务器的基本步骤。这对于开发和测试前端应用程序时非常有用，因为它允许您在没有真实后端服务器的情况下模拟数据和API行为。
+
+> 通过命令行配置路由，数据文件，监控等会让命令变的很长，而且容易敲错，json-server允许我们把所有的配置放到一个配置文件中，这个配置文件一般命名为json_sever_config.json;
+
+```json
+{
+  "port": 3000, // 端口
+  "watch": true, // 是否监视文件的改变
+  "static": "./public", // 静态资源目录
+  "read-only": false, // 是否只读
+  "no-cors": false, // 是否支持跨域
+  "no-gzip": false
+}
+```
+
+新建文件：package.json，配置一段脚本，之后运行的时候直接执行npm run mock即可
+```json
+{
+  "scripts": {
+    "mock": "json-server --c json_sever_config.json db.json"
+  }
+}
+```
+## 19.数据结构之把数组转为树形结构
+
+### 19.1 概念
+
+- 在树形结构中，常常会使用两个重要的属性 pid 和 id，它们代表以下含义：
+    
+    id（Identifier）：表示当前节点或对象的唯一标识符或标识符。
+    每个`节点或对象都应该有一个独一无二的 id 值，以便在树形结构中唯一标识节点`。通常，id 是一个数字或字符串。
+    
+    pid（Parent Identifier）：表示当前节点或对象的`父节点`的标识符。
+    `pid 值指向当前节点的父节点的 id 值`。`如果一个节点没有父节点（通常是根节点）`，则其 pid 值通常为空或特殊值（例如，null）。
+    
+    这些属性通常用于组织层次结构的数据，例如树状结构、目录结构或组织结构。
+    通过 id 和 pid，可以轻松地在树形结构中导航、查找子节点、父节点和兄弟节点等。
+    例如，考虑以下树形结构示例：
+    
+    id  |  pid  |   Name
+    ----|------|----------
+    1   | null |   Root
+    2   | 1    |   Node A
+    3   | 1    |   Node B
+    4   | 2    |   Node A.1
+    5   | 2    |   Node A.2
+    6   | 3    |   Node B.1
+    在这个示例中，每个节点都有一个唯一的 id，并`通过 pid 指示其父节点的 id`。
+    例如，节点 "Node A" 的 id 为 2，它的 pid 为 1，表示它是根节点 "Root" 的子节点。节点 "Node A.1" 的 id 为 4，它的 pid 为 2，表示它是 "Node A" 的子节点，
+    依此类推。这种组织结构有助于在树形数据中进行快速的遍历和查找操作。
+
+### 19.2 练习题
+> 将下面的数组转换为树形结构，需要将这个数组转换为[{id: "", parent: "", children:[]}]的数组形式，其中children为节点的子节点，通过id和parent关联，根节点是root，id为-1；
+
+```js
+let dataArray = [];
+  dataArray.push({id: -1, parent: null, name: 'root'});
+  for (let i = 0; i < 100; i++) {
+    dataArray.push({id: i, parent: i % 10 !== 0 ? i % 10 : i - 1, name: 'name' + i});
+  }
+```
+![dataArray的结构](./images/sjjg.png)
+```js
+function buildTreeFromArray(dataArray) {
+  // 创建一个空对象 tree 用于存储以 id 作为键的节点
+  const tree = {};
+
+  // 创建一个根节点，parent 为 null，id 为 -1
+  const root = {id: -1, parent: null, name: 'root', children: []};
+
+  // 遍历输入的数组
+  dataArray.forEach(item => {
+    const id = item.id;
+    const parent = item.parent;
+
+    // 如果树中没有当前节点的条目，则创建一个新的节点
+    if (!tree[id]) {
+      // 复制当前元素并创建一个 children 数组用于存储子节点
+      tree[id] = {...item, children: []};
+    } else {
+      // 如果已经存在具有相同 id 的节点，则更新该节点的属性
+      tree[id] = {...item, children: tree[id].children};
+    }
+
+    if (parent === id) {
+      // 如果当前节点的 pid 等于其自身的 id，将其视为根节点的子节点
+      root.children.push(tree[id]);
+    } else if (parent !== id && tree[parent]) {
+      // 如果 pid 不等于 id，并且父节点存在于树中，将当前节点添加到其父节点的 children 数组中
+      tree[parent].children.push(tree[id]);
+    }
+  });
+
+  return root; // 返回根节点，它包含了整个树的结构
+}
+
+const treeRoot = buildTreeFromArray(dataArray);
+console.log(treeRoot); // 输出包含树形结构的根节点
+```
+![树形结构](./images/sjjg2.png)
